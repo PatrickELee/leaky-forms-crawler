@@ -44,6 +44,7 @@ class CookieCollector extends BaseCollector {
             .map(cookie => ({
                 name: cookie.name,
                 domain: cookie.domain,
+                value: cookie.value,
                 path: cookie.path,
                 expires: this.normalizeDate(cookie.expires),
                 session: cookie.session,
