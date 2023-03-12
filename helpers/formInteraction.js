@@ -136,7 +136,70 @@ async function fillEmailField(page, frame, log, hostname, emailField, emailAddre
     return success;
 }
 
+/**
+ * @param {puppeteer.Page} page
+ * @param {puppeteer.Frame} frame
+ * @param {function(...any):void} log
+ * @param {any} emailField
+ */
+function noEntryFillEmailField(page, frame, log, emailField) {
+    let pageOrFrame = page;
+    if(frame) {
+         // @ts-ignore
+        pageOrFrame = frame;
+    }
+    let success = false;
+    let fieldHandle = emailField.elHandle;
+
+    try{
+        // improve email field detection
+        if (!fieldHandle) {
+            log(`Cannot find an email field`);
+            return false;
+        }
+        // fill the email field
+        success = true;
+        log(`Successfully filled the email field ${JSON.stringify({...emailField, elHandle: undefined})}`);
+    }catch(e) {
+        log(`Cannot fill the email field: ${JSON.stringify({...emailField, elHandle: undefined})} , error_msg: ${e.message}`);
+    }
+    return success;
+}
+
+
+/**
+ * @param {puppeteer.Page} page
+ * @param {puppeteer.Frame} frame
+ * @param {function(...any):void} log
+ * @param {any} passwordField
+ */
+function noEntryFillPasswordField(page, frame, log, passwordField) {
+    let success = false;
+    try{
+        let pageOrFrame = page;
+        if(frame) {
+            // @ts-ignore
+            pageOrFrame = frame;
+        }
+        const pwdFieldHandle = passwordField.elHandle;
+        if (!pwdFieldHandle) {
+            log(`Cannot find a password field`);
+            return false;
+        }
+
+        success = true;
+        log(`Successfully filled the password field ${JSON.stringify({...passwordField, elHandle: undefined})}`);
+    }catch(e) {
+        log(`Cannot fill the password field: ${JSON.stringify({...passwordField, elHandle: undefined})} , error_msg: ${e.message}`);
+    }
+    return success;
+}
+
+
+
 module.exports = {
     fillEmailField,
-    fillPasswordField
+    fillPasswordField,
+    noEntryFillEmailField,
+    noEntryFillPasswordField
 };

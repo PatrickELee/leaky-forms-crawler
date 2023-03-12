@@ -1,3 +1,4 @@
+/* eslint-disable linebreak-style */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable max-lines */
 const puppeteer = require('puppeteer');
@@ -222,6 +223,65 @@ class EmailPasswordFieldsCollector extends BaseCollector {
 
         if(filledEmail || filledPassword) {
             await pageUtils.sleep(SLEEP_AFTER_EMAIL_FILL);
+
+            if (filledEmail) {
+                for (const emailField of emailPasswordFields.emailFields) {
+                    // filledPassword = await forms.fillPasswordField(lastPage, this._current_frame, this._log, passwordField, this._options.passwordValue);
+    
+                    try{
+                        const emailFieldHandle = emailField;
+                        if (!emailFieldHandle) {
+                            break;
+                        }
+                
+                        const elementHandle = emailFieldHandle.elHandle;
+    
+                        const KEY_PRESS_DWELL_TIME = 100;
+                        const CLICK_DWELL_TIME = 100;
+                    
+    
+                        // scroll down to the element
+                        await this.scrollToElement(elementHandle);
+                        await elementHandle.hover();
+                        await elementHandle.click({delay: CLICK_DWELL_TIME});
+                        let randDelayDwellTime = Math.random() * KEY_PRESS_DWELL_TIME;
+                        // eslint-disable-next-line no-await-in-loop
+                        await elementHandle.press('Enter', {delay: randDelayDwellTime});  // delay -> dwell time
+                        await this.takeScreenshot(`after_enter`, lastPage, true);
+                    }catch(e) {
+    
+                    }
+                }
+    
+            } else if (filledPassword) {
+                for (const passwordField of emailPasswordFields.passwordFields) {
+                    // filledPassword = await forms.fillPasswordField(lastPage, this._current_frame, this._log, passwordField, this._options.passwordValue);
+    
+                    try{
+                        const pwdFieldHandle = passwordField;
+                        if (!pwdFieldHandle) {
+                            break;
+                        }
+                        const elementHandle = pwdFieldHandle.elHandle;
+    
+                        const KEY_PRESS_DWELL_TIME = 100;
+                        const CLICK_DWELL_TIME = 100;
+                    
+    
+                        // scroll down to the element
+                        await this.scrollToElement(elementHandle);
+                        await elementHandle.hover();
+                        await elementHandle.click({delay: CLICK_DWELL_TIME});
+                        let randDelayDwellTime = Math.random() * KEY_PRESS_DWELL_TIME;
+                        // eslint-disable-next-line no-await-in-loop
+                        await elementHandle.press('Enter', {delay: randDelayDwellTime});  // delay -> dwell time
+                        await this.takeScreenshot(`after_enter`, lastPage, true);
+                    }catch(e) {
+    
+                    }
+                }
+                
+            }
         }
 
         return  {filledEmail, filledPassword};
@@ -507,6 +567,16 @@ class EmailPasswordFieldsCollector extends BaseCollector {
         await page.screenshot({path: filePath});
         this._log(`Screenshot saved at: ${filePath}`);
     }
+
+    /**
+     * @param {puppeteer.ElementHandle} elementHandle
+     */
+    async scrollToElement(elementHandle) {
+        await elementHandle.evaluate(el => {
+            el.scrollIntoView({behavior: 'smooth', block: 'end', inline: 'end'});
+        });
+    }
+
 
 }
 

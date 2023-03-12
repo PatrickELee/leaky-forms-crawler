@@ -6,12 +6,14 @@ const path = require('path');
 const fs = require('fs');
 const fathomSrc = fs.readFileSync('./helpers/fathomDetect.js', 'utf8');
 const pageUtils = require('../helpers/utils.js');
+const forms = require('../helpers/formInteraction');
 const {createTimer} = require('../helpers/timer');
 const tldts = require('tldts');
 const {option} = require('commander');
 const NATIVE_CLICK = 'native';
 const EVENT_BASED_CLICK = 'event-based';
 const CLICK_METHODS = [NATIVE_CLICK, EVENT_BASED_CLICK];
+const SLEEP_AFTER_EMAIL_FILL = 5000;
 const MAX_RELOAD_TIME = 30000;
 // constants that determine taking screenshots
 const TAKE_SCREENSHOTS_AFTER_PAGE_LOAD = true;
@@ -84,7 +86,8 @@ class NoEntryEmailPasswordFieldsCollector extends BaseCollector {
 
         if (FILL_IN_EMAIL && emailPasswordFields && (emailPasswordFields.emailFields.length || emailPasswordFields.passwordFields.length)) {
             this._log(`Will fill in email and password on homepage ${this.finalUrl}`);
-            // fillRes = await this.fillFields();
+            fillRes = await this.fillFields(emailPasswordFields, this.page);
+
             // if(fillRes.filledPassword) {
             //     this._log('Password filled on homepage');
             // }
@@ -157,7 +160,7 @@ class NoEntryEmailPasswordFieldsCollector extends BaseCollector {
                 if (FILL_IN_EMAIL && emailPasswordFields && (emailPasswordFields.emailFields.length || emailPasswordFields.passwordFields.length)) {
                     let lastUrl = this._lastPage.url();
                     this._log(`Will fill in email after click ${lastUrl}`);
-                    // fillRes = await this.fillFields();
+                    fillRes = await this.fillFields(emailPasswordFields, this.page);
                     // if(fillRes.filledPassword) {
                     //     await this.takeScreenshot(`after_pwd_filled`, this._lastPage, TAKE_SCREENSHOTS_AFTER_PWD_FILLED);
                     //     this._log('Password filled on innerpage');
@@ -167,6 +170,7 @@ class NoEntryEmailPasswordFieldsCollector extends BaseCollector {
                     //     await this.takeScreenshot(`after_email_filled`, this._lastPage, TAKE_SCREENSHOTS_AFTER_EMAIL_FILLED);
                     //     break;
                     // }
+                    
                 }
             } else {
                 this._log(`Did not find any field` +
@@ -185,10 +189,94 @@ class NoEntryEmailPasswordFieldsCollector extends BaseCollector {
         };
     }
 
-
-    fillFields() {
+    /**
+     * @param {EmailPasswordFieldsUrlBased} emailPasswordFields
+     * @param {puppeteer.Page} lastPage
+     */
+    async fillFields(emailPasswordFields, lastPage) {
         let filledEmail = false;
         let filledPassword = false;
+
+        if(!this._alreadyFilledEmail) {
+            for (const emailField of emailPasswordFields.emailFields) {
+                filledEmail = forms.noEntryFillEmailField(lastPage, this._current_frame, this._log, emailField);
+                if(filledEmail) {
+                    this._alreadyFilledEmail = true;
+                    break;
+                }
+            }
+        }
+
+        if(!this._alreadyFilledPassword) {
+            for (const passwordField of emailPasswordFields.passwordFields) {
+                filledPassword = forms.noEntryFillPasswordField(lastPage, this._current_frame, this._log, passwordField);
+                if(filledPassword) {
+                    this._alreadyFilledPassword = true;
+                    break;
+                }
+            }
+        }
+
+        if (filledEmail) {
+            await pageUtils.sleep(SLEEP_AFTER_EMAIL_FILL);
+
+            for (const emailField of emailPasswordFields.emailFields) {
+                // filledPassword = await forms.fillPasswordField(lastPage, this._current_frame, this._log, passwordField, this._options.passwordValue);
+
+                try{
+                    const emailFieldHandle = emailField;
+                    if (!emailFieldHandle) {
+                        break;
+                    }
+            
+                    const elementHandle = emailFieldHandle.elHandle;
+
+                    const KEY_PRESS_DWELL_TIME = 100;
+                    const CLICK_DWELL_TIME = 100;
+                
+
+                    // scroll down to the element
+                    await this.scrollToElement(elementHandle);
+                    await elementHandle.hover();
+                    await elementHandle.click({delay: CLICK_DWELL_TIME});
+                    let randDelayDwellTime = Math.random() * KEY_PRESS_DWELL_TIME;
+                    // eslint-disable-next-line no-await-in-loop
+                    await elementHandle.press('Enter', {delay: randDelayDwellTime});  // delay -> dwell time
+                    await this.takeScreenshot(`after_enter`, lastPage, true);
+                }catch(e) {
+
+                }
+            }
+
+        } else if (filledPassword) {
+            for (const passwordField of emailPasswordFields.passwordFields) {
+                // filledPassword = await forms.fillPasswordField(lastPage, this._current_frame, this._log, passwordField, this._options.passwordValue);
+
+                try{
+                    const pwdFieldHandle = passwordField;
+                    if (!pwdFieldHandle) {
+                        break;
+                    }
+                    const elementHandle = pwdFieldHandle.elHandle;
+
+                    const KEY_PRESS_DWELL_TIME = 100;
+                    const CLICK_DWELL_TIME = 100;
+                
+
+                    // scroll down to the element
+                    await this.scrollToElement(elementHandle);
+                    await elementHandle.hover();
+                    await elementHandle.click({delay: CLICK_DWELL_TIME});
+                    let randDelayDwellTime = Math.random() * KEY_PRESS_DWELL_TIME;
+                    // eslint-disable-next-line no-await-in-loop
+                    await elementHandle.press('Enter', {delay: randDelayDwellTime});  // delay -> dwell time
+                    await this.takeScreenshot(`after_enter`, lastPage, true);
+                }catch(e) {
+
+                }
+            }
+        }
+
 
         return  {filledEmail, filledPassword};
     }
@@ -473,6 +561,16 @@ class NoEntryEmailPasswordFieldsCollector extends BaseCollector {
         await page.screenshot({path: filePath});
         this._log(`Screenshot saved at: ${filePath}`);
     }
+
+    /**
+     * @param {puppeteer.ElementHandle} elementHandle
+     */
+    async scrollToElement(elementHandle) {
+        await elementHandle.evaluate(el => {
+            el.scrollIntoView({behavior: 'smooth', block: 'end', inline: 'end'});
+        });
+    }
+    
 
 }
 

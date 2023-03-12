@@ -1,3 +1,4 @@
+/* eslint-disable linebreak-style */
 /* eslint-disable max-lines */
 let puppeteer = require('puppeteer');
 const fs = require('fs');
